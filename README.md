@@ -1,2 +1,4 @@
 # go-firecache
-go library for firestore caching module
+
+This library enables an easy interaction to the google firestore.
+It caches frequent requests and makes them faster than ever.
