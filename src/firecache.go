@@ -29,6 +29,14 @@ func (f *Firecache) RemoveListener(path string, query Q, callback *func(data any
 	return f.listener.removeListener(path, query, callback)
 }
 
+func (f *Firecache) Read(path string, query Q) any {
+	return f.cache.read(path, query)
+}
+
+func (f *Firecache) ReadWithoutCache(path string, query Q) any {
+	return f.database.read(path, query)
+}
+
 func (f *Firecache) Insert(path string, data any) (string, error) {
 	return f.cache.insert(path, data)
 }
@@ -43,10 +51,6 @@ func (f *Firecache) Update(path string, data any) error {
 
 func (f *Firecache) UpdateWithoutCache(path string, data any) error {
 	return f.database.update(path, data)
-}
-
-func (f *Firecache) Read(path string, query Q) any {
-	return f.cache.read(path, query)
 }
 
 func (f *Firecache) Delete(path string, query Q) error {
