@@ -16,6 +16,6 @@ func (c *cache) update(path string, data any) error {
 	return nil
 }
 
-func (c *cache) read(path string, query Q) any {
+func (c *cache) read(path string, query Q) (any, error) {
 	return c.database.read(path, query)
 }

@@ -6,14 +6,6 @@ import (
 	"runtime"
 )
 
-type Query struct {
-	field    string
-	operator string
-	value    string
-}
-
-type Q []Query
-
 type Firecache struct {
 	ctx      context.Context
 	database *database
@@ -29,11 +21,11 @@ func (f *Firecache) RemoveListener(path string, query Q, callback *func(data any
 	return f.listener.removeListener(path, query, callback)
 }
 
-func (f *Firecache) Read(path string, query Q) any {
+func (f *Firecache) Read(path string, query Q) (any, error) {
 	return f.cache.read(path, query)
 }
 
-func (f *Firecache) ReadWithoutCache(path string, query Q) any {
+func (f *Firecache) ReadWithoutCache(path string, query Q) (any, error) {
 	return f.database.read(path, query)
 }
 

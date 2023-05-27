@@ -2,6 +2,7 @@ package firecache
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"cloud.google.com/go/firestore"
@@ -14,7 +15,7 @@ type database struct {
 	firestore *firestore.Client
 }
 
-func (db *database) addListener(path string, query Q, callback func(data any)) func() {
+func (db *database) addListener(path string, query Q, callback func(data any)) context.CancelFunc {
 	cancelCtx, unsubscribe := context.WithCancel(db.ctx)
 
 	if isDoc(path) {
@@ -49,11 +50,15 @@ func (db *database) update(path string, data any) error {
 	return nil
 }
 
-func (db *database) read(path string, query Q) any {
+func (db *database) read(path string, query Q) (any, error) {
 	if isDoc(path) {
 		doc, _ := db.firestore.Doc(path).Get(db.ctx)
 
-		return doc.Data()
+		if doc.Exists() {
+			return doc.Data(), nil
+		}
+
+		return nil, &NoData{}
 	} else {
 		docs, _ := db.firestore.Collection(path).Documents(db.ctx).GetAll()
 
@@ -63,7 +68,7 @@ func (db *database) read(path string, query Q) any {
 			data = append(data, doc.Data())
 		}
 
-		return data
+		return data, nil
 	}
 }
 
@@ -82,6 +87,7 @@ func listenDoc(iterator *firestore.DocumentSnapshotIterator, callback func(data 
 		snap, err := iterator.Next()
 
 		if e := status.Code(err); e == codes.Canceled {
+			fmt.Println("canceled!!!")
 			return
 		}
 

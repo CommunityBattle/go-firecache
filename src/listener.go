@@ -14,7 +14,7 @@ type listenerCache struct {
 	callbacks    map[*func(data any)]func(data any)
 	dataReceived bool
 	data         any
-	unsubscribe  func()
+	unsubscribe  context.CancelFunc
 }
 
 func (l *listener) addListener(path string, query Q, callback *func(data any)) error {
