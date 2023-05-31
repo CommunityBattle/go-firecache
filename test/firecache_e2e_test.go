@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	firecache "github.com/CommunityBattle/go-firecache/src"
+	firecache "github.com/CommunityBattle/go-firecache"
 )
 
 func TestListener(t *testing.T) {
