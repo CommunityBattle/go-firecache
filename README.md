@@ -23,7 +23,7 @@ import (
     "github.com/CommunityBattle/go-firecache"
 )
 
-firecache := Firecache.getInstance();
+firecache := firecache.getInstance();
 
 handler := func(data any) {
 	//do something
