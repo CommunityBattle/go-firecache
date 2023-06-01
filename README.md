@@ -20,7 +20,7 @@ The following steps are required to successfully run an E2E test:
 package main
 
 import (
-    'github.com/CommunityBattle/go-firecache'
+    "github.com/CommunityBattle/go-firecache"
 )
 
 firecache := Firecache.getInstance();
