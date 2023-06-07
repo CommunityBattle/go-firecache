@@ -1,90 +1,143 @@
 package test
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"os"
 	"reflect"
 	"testing"
 
-	firecache "github.com/CommunityBattle/go-firecache"
+	f "github.com/CommunityBattle/go-firecache"
 )
 
-func TestListener(t *testing.T) {
-	firecache := firecache.GetFirecache()
+var (
+	firecache *f.Firecache
 
-	updateSuccessfullyCaught := false
+	testCollection          string
+	testDocument            string
+	testDocumentNotExisting string
 
-	exp := map[string]interface{}{"test_field": "test_value", "added_field": "added_value"}
+	testData          map[string]interface{}
+	testDataForUpdate f.U
+	testDataUpdated   map[string]interface{}
+)
 
-	callback := func(act any) {
-		if reflect.DeepEqual(exp, act) {
-			updateSuccessfullyCaught = true
-		}
-	}
+func TestMain(m *testing.M) {
+	firecache = f.GetFirecache()
 
-	err := firecache.AddListener("test/test_doc", nil, &callback)
+	u := make([]byte, 16)
+	rand.Read(u)
 
+	u[8] = (u[8] | 0x80) & 0xBF
+	u[6] = (u[6] | 0x40) & 0x4F
+
+	testCollection = "test-" + hex.EncodeToString(u)
+	testDocument = "test_doc"
+	testDocumentNotExisting = "test_doc_not_existing"
+
+	testData = map[string]interface{}{"test_field": "test_value"}
+	testDataForUpdate = f.U{{Path: "test_field", Value: "test_value_updated"}}
+	testDataUpdated = map[string]interface{}{"test_field": "test_value_updated"}
+
+	code := m.Run()
+
+	os.Exit(code)
+}
+
+func TestInsert(t *testing.T) {
+	id, err := firecache.Insert(testCollection, testData)
 	if err != nil {
-		t.Errorf("could not add listener: %v", err)
+		t.Error(err)
+	}
+	if id == "" {
+		t.Errorf("not existing document could not be added to collection")
 	}
 
-	err = firecache.UpdateWithoutCache("test/test_doc", exp)
-
+	_, err = firecache.Insert(testCollection+"/"+testDocument, testData)
 	if err != nil {
-		t.Errorf("could not update: %v", err)
+		t.Error(err)
 	}
 
-	if updateSuccessfullyCaught != true {
-		t.Errorf("listener got no update")
+	_, err = firecache.Insert(testCollection+"/"+testDocument, testData)
+	if err == nil {
+		t.Errorf("already existing document was not rejected by the method")
 	}
 }
 
-func TestReadWithoutCache(t *testing.T) {
-	firecache := firecache.GetFirecache()
-
-	exp := map[string]interface{}{"test_field": "test_value"}
-	act, err := firecache.ReadWithoutCache("test/test_doc", nil)
-
-	if err != nil {
-		t.Errorf("could not read: %v", err)
+func TestRead(t *testing.T) {
+	_, err := firecache.Read(testCollection+"/"+testDocumentNotExisting, nil)
+	if err == nil {
+		t.Errorf("not existing document was found by the method")
 	}
 
-	if !reflect.DeepEqual(act, exp) {
-		t.Errorf("expected %v, got %v", exp, act)
+	doc, _ := firecache.Read(testCollection+"/"+testDocument, nil)
+
+	if !reflect.DeepEqual(doc, testData) {
+		t.Errorf("expected %v, got %v", testData, doc)
 	}
 }
 
-func TestInsertWithoutCache(t *testing.T) {
-	firecache := firecache.GetFirecache()
-
-	val := map[string]interface{}{"test_field": "test_value"}
-	_, err := firecache.InsertWithoutCache("test/test_inserted_doc", val)
-
-	if err != nil {
-		t.Errorf("could not insert: %v", err)
+func TestUpdate(t *testing.T) {
+	err := firecache.Update(testCollection+"/"+testDocumentNotExisting, testDataForUpdate)
+	if err == nil {
+		t.Errorf("not existing document was updated by the method")
 	}
 
-	got, err := firecache.ReadWithoutCache("test/test_inserted_doc", nil)
-
-	if err != nil {
-		t.Errorf("could not read: %v", err)
+	err = firecache.Update(testCollection, testDataForUpdate)
+	if err == nil {
+		t.Errorf("collection path was not rejected by the method")
 	}
 
-	if !reflect.DeepEqual(val, got) {
-		t.Errorf("expected %v, got %v", val, got)
+	err = firecache.Update(testCollection+"/"+testDocument, testDataForUpdate)
+	if err != nil {
+		t.Error(err)
+	}
+
+	doc, _ := firecache.Read(testCollection+"/"+testDocument, nil)
+	if !reflect.DeepEqual(doc, testDataUpdated) {
+		t.Errorf("expected %v, got %v", testDataUpdated, doc)
 	}
 }
 
 func TestDelete(t *testing.T) {
-	firecache := firecache.GetFirecache()
-
-	err := firecache.Delete("test/test_inserted_doc", nil)
-
-	if err != nil {
-		t.Errorf("could not delete: %v", err)
+	err := firecache.Delete(testCollection+"/"+testDocumentNotExisting, nil)
+	if err == nil {
+		t.Errorf("not existing document was deletable in the method")
 	}
 
-	_, err = firecache.ReadWithoutCache("test/test_inserted_doc", nil)
-
-	if err == nil {
+	err = firecache.Delete(testCollection+"/"+testDocument, nil)
+	if err != nil {
 		t.Error("document has not been deleted")
+	}
+
+	_, err = firecache.Read(testCollection+"/"+testDocument, nil)
+	if err == nil {
+		t.Errorf("deleted document was found by the method")
+	}
+
+	err = firecache.Delete(testCollection, nil)
+	if err != nil {
+		t.Error("collection has not been deleted")
+	}
+
+	docs, _ := firecache.Read(testCollection, nil)
+	if l := len(docs.(f.A)); l > 0 {
+		t.Errorf("expected 0 entries, got %v", l)
+	}
+}
+
+func TestGeneric(t *testing.T) {
+	docs, err := firecache.Read("test", f.Q{{Field: "count", Operator: ">=", Value: "1"}})
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, doc := range docs.(f.A) {
+		fmt.Println(doc)
+	}
+
+	if len(docs.(f.A)) == 0 {
+		t.Error("read on collection does not work")
 	}
 }

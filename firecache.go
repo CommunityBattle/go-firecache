@@ -37,11 +37,11 @@ func (f *Firecache) InsertWithoutCache(path string, data any) (string, error) {
 	return f.database.insert(path, data)
 }
 
-func (f *Firecache) Update(path string, data any) error {
+func (f *Firecache) Update(path string, data U) error {
 	return f.cache.update(path, data)
 }
 
-func (f *Firecache) UpdateWithoutCache(path string, data any) error {
+func (f *Firecache) UpdateWithoutCache(path string, data U) error {
 	return f.database.update(path, data)
 }
 

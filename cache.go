@@ -1,6 +1,8 @@
 package firecache
 
-import "context"
+import (
+	"context"
+)
 
 type cache struct {
 	ctx      context.Context
@@ -9,11 +11,11 @@ type cache struct {
 }
 
 func (c *cache) insert(path string, data any) (string, error) {
-	return "", nil
+	return c.database.insert(path, data)
 }
 
-func (c *cache) update(path string, data any) error {
-	return nil
+func (c *cache) update(path string, data U) error {
+	return c.database.update(path, data)
 }
 
 func (c *cache) read(path string, query Q) (any, error) {

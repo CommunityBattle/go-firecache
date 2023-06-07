@@ -22,7 +22,7 @@ func (db *database) addListener(path string, query Q, callback func(data any)) c
 		it := db.firestore.Doc(path).Snapshots(cancelCtx)
 		go listenDoc(it, callback)
 	} else {
-		it := db.firestore.Collection(path).Snapshots(cancelCtx)
+		it := db.resolve(path, query).Snapshots(cancelCtx)
 		go listenColl(it, callback)
 	}
 
@@ -30,24 +30,19 @@ func (db *database) addListener(path string, query Q, callback func(data any)) c
 }
 
 func (db *database) insert(path string, data any) (string, error) {
-	var id string
-	var err error
-
 	if isDoc(path) {
-		_, err = db.firestore.Doc(path).Set(db.ctx, data)
+		doc, _ := db.firestore.Doc(path).Get(db.ctx)
+
+		if doc.Exists() {
+			return "", &AlreadyExists{}
+		} else {
+			_, err := db.firestore.Doc(path).Create(db.ctx, data)
+			return "", err
+		}
 	} else {
-		var doc *firestore.DocumentRef
-
-		doc, _, err = db.firestore.Collection(path).Add(db.ctx, data)
-
-		id = doc.ID
+		doc, _, err := db.firestore.Collection(path).Add(db.ctx, data)
+		return doc.ID, err
 	}
-
-	return id, err
-}
-
-func (db *database) update(path string, data any) error {
-	return nil
 }
 
 func (db *database) read(path string, query Q) (any, error) {
@@ -60,9 +55,12 @@ func (db *database) read(path string, query Q) (any, error) {
 
 		return nil, &NoData{}
 	} else {
-		docs, _ := db.firestore.Collection(path).Documents(db.ctx).GetAll()
+		docs, err := db.resolve(path, query).Documents(db.ctx).GetAll()
+		if err != nil {
+			return nil, err
+		}
 
-		var data []map[string]interface{}
+		var data A
 
 		for _, doc := range docs {
 			data = append(data, doc.Data())
@@ -72,8 +70,101 @@ func (db *database) read(path string, query Q) (any, error) {
 	}
 }
 
+func (db *database) update(path string, data U) error {
+	if isDoc(path) {
+		doc, _ := db.firestore.Doc(path).Get(db.ctx)
+
+		if doc.Exists() {
+			parsed := make([]firestore.Update, 0)
+
+			for _, entry := range data {
+				parsed = append(parsed, firestore.Update{
+					Path:      entry.Path,
+					FieldPath: entry.FieldPath,
+					Value:     entry.Value,
+				})
+			}
+
+			_, err := db.firestore.Doc(path).Update(db.ctx, parsed)
+			return err
+		} else {
+			return &NoData{}
+		}
+	} else {
+		return &CollectionUsedForDocumentOperation{}
+	}
+}
+
 func (db *database) delete(path string, query Q) error {
-	return nil
+	if isDoc(path) {
+		doc, err := db.firestore.Doc(path).Get(db.ctx)
+		if err != nil {
+			return err
+		}
+
+		if doc.Exists() {
+			collections, err := doc.Ref.Collections(db.ctx).GetAll()
+			if err != nil {
+				return err
+			}
+
+			for _, collection := range collections {
+				docs, err := collection.Documents(db.ctx).GetAll()
+				if err != nil {
+					return err
+				}
+
+				for _, d := range docs {
+					err := db.delete(path+"/"+d.Ref.ID, nil)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			doc.Ref.Delete(db.ctx)
+			return nil
+		} else {
+			return nil
+		}
+	} else {
+		docs, err := db.resolve(path, query).Documents(db.ctx).GetAll()
+		if err != nil {
+			return err
+		}
+
+		for _, doc := range docs {
+			err := db.delete(path+"/"+doc.Ref.ID, nil)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+}
+
+func (db *database) resolve(path string, query Q) firestore.Query {
+	collectionRef := db.firestore.Collection(path)
+	queryRef := collectionRef.Query
+
+	if query != nil {
+		for _, condition := range query {
+			queryRef = queryRef.Where(condition.Field, condition.Operator, condition.Value)
+
+			if condition.Order != nil {
+				for _, order := range condition.Order {
+					queryRef = queryRef.OrderBy(order.By, firestore.Direction(order.Direction))
+				}
+			}
+
+			if condition.Limit > 0 {
+				queryRef = queryRef.Limit(condition.Limit)
+			}
+		}
+	}
+
+	return queryRef
 }
 
 func isDoc(path string) bool {

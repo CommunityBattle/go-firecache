@@ -20,10 +20,10 @@ The following steps are required to successfully run an E2E test:
 package main
 
 import (
-    "github.com/CommunityBattle/go-firecache"
+    f "github.com/CommunityBattle/go-firecache"
 )
 
-firecache := firecache.getInstance();
+firecache := f.getInstance();
 
 handler := func(data any) {
 	//do something
@@ -33,7 +33,7 @@ err := firecache.AddListener("test_collection/new_document", nil, &handler)
 
 _, err := firecache.Insert("test_collection/new_document", map[string]interface{}{"foo": "bar"});
 data, err := firecache.Read("test_collection/new_document", nil)
-err = firecache.Update("test_collection/new_document", map[string]interface{}{"foo": "baz"})
+err = firecache.Update("test_collection/new_document", f.U{{Field: "foo", Value: "baz"}})
 err := firecache.Delete("test_collection/new_document", nil)
 
 firecache.RemoveListener("test_collection/new_document", nil, handler)

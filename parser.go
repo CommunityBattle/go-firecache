@@ -18,18 +18,18 @@ func ParseCollListener(data any) *firestore.QuerySnapshot {
 	return data.(*firestore.QuerySnapshot)
 }
 
-func PaseDoc(data any) map[string]interface{} {
+func PaseDoc(data any) Any {
 	if data == nil {
 		return nil
 	}
 
-	return data.(map[string]interface{})
+	return data.(Any)
 }
 
-func ParseColl(data any) []map[string]interface{} {
+func ParseColl(data any) A {
 	if data == nil {
 		return nil
 	}
 
-	return data.([]map[string]interface{})
+	return data.(A)
 }
