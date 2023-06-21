@@ -35,6 +35,7 @@ func main() {
 	err = firecache.Delete("test_collection/new_document", nil)
 
 	firecache.RemoveListener("test_collection/new_document", nil, &handler)
+	firecache.RemoveListener("test_collection", nil, &handler)
 }
 ```
 
@@ -56,8 +57,7 @@ import (
 )
 
 func main() {
-    firecache := f.getInstance()
-
+    firecache := f.GetFirecache()
     firecache.Monitor()
 }
  ```
