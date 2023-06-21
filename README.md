@@ -40,7 +40,7 @@ func main() {
 ```
 
 ## Testing
-This library can be tested through the test/e2e_test.go file.
+This library can be tested through the firecache_test.go file.
 
 The following steps are required to successfully run an E2E test:
 - Create a new service account on the GCP platform that is permitted to CRUD the firestore
