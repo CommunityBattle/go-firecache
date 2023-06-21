@@ -1,35 +1,17 @@
 package firecache
 
-import "cloud.google.com/go/firestore"
-
-func ParseDocListener(data any) *firestore.DocumentSnapshot {
+func PaseDoc(data any) *Document {
 	if data == nil {
 		return nil
 	}
 
-	return data.(*firestore.DocumentSnapshot)
+	return data.(*Document)
 }
 
-func ParseCollListener(data any) *firestore.QuerySnapshot {
+func ParseColl(data any) *DocumentList {
 	if data == nil {
 		return nil
 	}
 
-	return data.(*firestore.QuerySnapshot)
-}
-
-func PaseDoc(data any) Any {
-	if data == nil {
-		return nil
-	}
-
-	return data.(Any)
-}
-
-func ParseColl(data any) A {
-	if data == nil {
-		return nil
-	}
-
-	return data.(A)
+	return data.(*DocumentList)
 }

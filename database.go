@@ -2,8 +2,6 @@ package firecache
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/grpc/codes"
@@ -37,7 +35,7 @@ func (db *database) insert(path string, data any) (string, error) {
 			return "", &AlreadyExists{}
 		} else {
 			_, err := db.firestore.Doc(path).Create(db.ctx, data)
-			return "", err
+			return parseDocIdFromPath(path), err
 		}
 	} else {
 		doc, _, err := db.firestore.Collection(path).Add(db.ctx, data)
@@ -50,7 +48,9 @@ func (db *database) read(path string, query Q) (any, error) {
 		doc, _ := db.firestore.Doc(path).Get(db.ctx)
 
 		if doc.Exists() {
-			return doc.Data(), nil
+			var data Document
+			data = doc.Data()
+			return &data, nil
 		}
 
 		return nil, &NoData{}
@@ -60,13 +60,13 @@ func (db *database) read(path string, query Q) (any, error) {
 			return nil, err
 		}
 
-		var data A
+		var data DocumentList
 
 		for _, doc := range docs {
-			data = append(data, doc.Data())
+			data = append(data, DocumentEntry{Id: doc.Ref.ID, Document: doc.Data()})
 		}
 
-		return data, nil
+		return &data, nil
 	}
 }
 
@@ -158,6 +158,10 @@ func (db *database) resolve(path string, query Q) firestore.Query {
 				}
 			}
 
+			if condition.Offset > 0 {
+				queryRef = queryRef.Offset(condition.Offset)
+			}
+
 			if condition.Limit > 0 {
 				queryRef = queryRef.Limit(condition.Limit)
 			}
@@ -167,18 +171,11 @@ func (db *database) resolve(path string, query Q) firestore.Query {
 	return queryRef
 }
 
-func isDoc(path string) bool {
-	hierarchy := strings.Split(path, "/")
-
-	return len(hierarchy)%2 == 0
-}
-
 func listenDoc(iterator *firestore.DocumentSnapshotIterator, callback func(data any)) {
 	for {
 		snap, err := iterator.Next()
 
 		if e := status.Code(err); e == codes.Canceled {
-			fmt.Println("canceled!!!")
 			return
 		}
 

@@ -1,30 +1,27 @@
-package test
+package firecache
 
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"os"
 	"reflect"
 	"testing"
-
-	f "github.com/CommunityBattle/go-firecache"
 )
 
 var (
-	firecache *f.Firecache
+	firecache *Firecache
 
 	testCollection          string
 	testDocument            string
 	testDocumentNotExisting string
 
-	testData          map[string]interface{}
-	testDataForUpdate f.U
-	testDataUpdated   map[string]interface{}
+	testData          *Document
+	testDataForUpdate U
+	testDataUpdated   *Document
 )
 
 func TestMain(m *testing.M) {
-	firecache = f.GetFirecache()
+	firecache = GetFirecache()
 
 	u := make([]byte, 16)
 	rand.Read(u)
@@ -36,9 +33,9 @@ func TestMain(m *testing.M) {
 	testDocument = "test_doc"
 	testDocumentNotExisting = "test_doc_not_existing"
 
-	testData = map[string]interface{}{"test_field": "test_value"}
-	testDataForUpdate = f.U{{Path: "test_field", Value: "test_value_updated"}}
-	testDataUpdated = map[string]interface{}{"test_field": "test_value_updated"}
+	testData = &Document{"test_field": "test_value"}
+	testDataForUpdate = U{{Path: "test_field", Value: "test_value_updated"}}
+	testDataUpdated = &Document{"test_field": "test_value_updated"}
 
 	code := m.Run()
 
@@ -94,7 +91,7 @@ func TestUpdate(t *testing.T) {
 		t.Error(err)
 	}
 
-	doc, _ := firecache.Read(testCollection+"/"+testDocument, nil)
+	doc, _ := firecache.ReadWithoutCache(testCollection+"/"+testDocument, nil)
 	if !reflect.DeepEqual(doc, testDataUpdated) {
 		t.Errorf("expected %v, got %v", testDataUpdated, doc)
 	}
@@ -111,7 +108,7 @@ func TestDelete(t *testing.T) {
 		t.Error("document has not been deleted")
 	}
 
-	_, err = firecache.Read(testCollection+"/"+testDocument, nil)
+	_, err = firecache.ReadWithoutCache(testCollection+"/"+testDocument, nil)
 	if err == nil {
 		t.Errorf("deleted document was found by the method")
 	}
@@ -121,23 +118,9 @@ func TestDelete(t *testing.T) {
 		t.Error("collection has not been deleted")
 	}
 
-	docs, _ := firecache.Read(testCollection, nil)
-	if l := len(docs.(f.A)); l > 0 {
+	res, _ := firecache.Read(testCollection, nil)
+	docs := ParseColl(res)
+	if l := len(*docs); l > 0 {
 		t.Errorf("expected 0 entries, got %v", l)
-	}
-}
-
-func TestGeneric(t *testing.T) {
-	docs, err := firecache.Read("test", f.Q{{Field: "count", Operator: ">=", Value: "1"}})
-	if err != nil {
-		t.Error(err)
-	}
-
-	for _, doc := range docs.(f.A) {
-		fmt.Println(doc)
-	}
-
-	if len(docs.(f.A)) == 0 {
-		t.Error("read on collection does not work")
 	}
 }

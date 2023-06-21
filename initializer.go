@@ -56,8 +56,8 @@ func getCache() *cache {
 		cacheOnce.Do(func() {
 			cacheInstance = &cache{}
 			cacheInstance.ctx = ctx
-			cacheInstance.database = getDatabase()
 			cacheInstance.listener = getListener()
+			cacheInstance.cache = make(map[string]*dataCache)
 		})
 	}
 
