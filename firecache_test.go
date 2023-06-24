@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 	u[8] = (u[8] | 0x80) & 0xBF
 	u[6] = (u[6] | 0x40) & 0x4F
 
-	testCollection = "test-" + hex.EncodeToString(u)
+	testCollection = "suites/go-firecache/test-" + hex.EncodeToString(u)
 	testDocument = "test_doc"
 	testDocumentNotExisting = "test_doc_not_existing"
 

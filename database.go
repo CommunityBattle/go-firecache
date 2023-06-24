@@ -48,8 +48,7 @@ func (db *database) read(path string, query Q) (any, error) {
 		doc, _ := db.firestore.Doc(path).Get(db.ctx)
 
 		if doc.Exists() {
-			var data Document
-			data = doc.Data()
+			data := Document(doc.Data())
 			return &data, nil
 		}
 
@@ -148,23 +147,21 @@ func (db *database) resolve(path string, query Q) firestore.Query {
 	collectionRef := db.firestore.Collection(path)
 	queryRef := collectionRef.Query
 
-	if query != nil {
-		for _, condition := range query {
-			queryRef = queryRef.Where(condition.Field, condition.Operator, condition.Value)
+	for _, condition := range query {
+		queryRef = queryRef.Where(condition.Field, condition.Operator, condition.Value)
 
-			if condition.Order != nil {
-				for _, order := range condition.Order {
-					queryRef = queryRef.OrderBy(order.By, firestore.Direction(order.Direction))
-				}
+		if condition.Order != nil {
+			for _, order := range condition.Order {
+				queryRef = queryRef.OrderBy(order.By, firestore.Direction(order.Direction))
 			}
+		}
 
-			if condition.Offset > 0 {
-				queryRef = queryRef.Offset(condition.Offset)
-			}
+		if condition.Offset > 0 {
+			queryRef = queryRef.Offset(condition.Offset)
+		}
 
-			if condition.Limit > 0 {
-				queryRef = queryRef.Limit(condition.Limit)
-			}
+		if condition.Limit > 0 {
+			queryRef = queryRef.Limit(condition.Limit)
 		}
 	}
 
