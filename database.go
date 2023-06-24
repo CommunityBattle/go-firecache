@@ -171,6 +171,7 @@ func (db *database) resolve(path string, query Q) firestore.Query {
 func listenDoc(iterator *firestore.DocumentSnapshotIterator, callback func(data any)) {
 	for {
 		snap, err := iterator.Next()
+		//Todo add error handling through errorhook
 
 		if e := status.Code(err); e == codes.Canceled {
 			return
@@ -183,6 +184,7 @@ func listenDoc(iterator *firestore.DocumentSnapshotIterator, callback func(data 
 func listenColl(iterator *firestore.QuerySnapshotIterator, callback func(data any)) {
 	for {
 		snap, err := iterator.Next()
+		//Todo add error handling through errorhook
 
 		if e := status.Code(err); e == codes.Canceled {
 			return
