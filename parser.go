@@ -1,6 +1,6 @@
 package firecache
 
-func PaseDoc(data any) *Document {
+func ParseDoc(data any) *Document {
 	if data == nil {
 		return nil
 	}
