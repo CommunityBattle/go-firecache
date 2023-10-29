@@ -35,16 +35,10 @@ func (c *cache) read(path string, query Q) (any, error) {
 			}
 
 			if isDoc(path) {
-				if event.Document == nil {
-					scope.datanil = true
-				}
-
+				scope.datanil = event.Document == nil
 				scope.data = event.Document
 			} else {
-				if event.DocumentList == nil {
-					scope.datanil = true
-				}
-
+				scope.datanil = event.DocumentList == nil
 				scope.data = event.DocumentList
 			}
 		}
