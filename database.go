@@ -124,7 +124,7 @@ func (db *database) delete(path string, query Q) error {
 			doc.Ref.Delete(db.ctx)
 			return nil
 		} else {
-			return nil
+			return &NoData{}
 		}
 	} else {
 		docs, err := db.resolve(path, query).Documents(db.ctx).GetAll()
